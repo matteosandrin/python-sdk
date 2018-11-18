@@ -64,24 +64,25 @@ client = smartcar.AuthClient(
 
 **Reference:** [`smartcar.AuthClient`](doc#new_Smartcar_new) TODO: UPDATE THIS LINK
 
-* Redirect the user to an OEM login page using the URL from `client.get_auth_url()`
-* The user will login, and then accept or deny the permissions in your `scope`
-    * If the user is already connected to your application, they will not be shown the accept or deny dialog. However the application can force this dialog to be shown with `client.get_auth_url(force=True)`
-    * If the user accepts, they will be redirected to your `redirect_uri`. The query field `code` will contain an authentication code. This is *very* important, so save it for later.
-    * If the user denies, the query field `code` will equal `"access_denied"`, so you should handle this somehow.
-
-* With your authentication code in hand, use `client.exchange_code(authentication_code)` to exchange your authentication code for an **access object**. This access object will look like this:
-
-```json
-{
-  "access_token": "...",
-  "token_type": "Bearer",
-  "expiration": "2018-05-02T18:04:25+00:00",
-  "refresh_token": "...",
-  "refresh_expiration": "2018-06-02T18:03:25+00:00",
-  "expires_in": "..."
-}
+### 3. Generate the authorization URL
+```python
+client.get_auth_url()
 ```
+ TODO: document where this method should be used
+
+**Reference:** [`AuthClient#get_auth_url`](doc#Smartcar+openDialog) TODO: UPDATE THIS LINK
+
+remove the following?
+> * The user will login, and then accept or deny the permissions in your `scope`
+> * If the user is already connected to your application, they will not be shown the accept or deny dialog. However the application can force this dialog to be shown with `client.get_auth_url(force=True)`
+
+### 4. Exchange the authorization code
+```python
+access = client.exchange_code('<authorization-code>')
+```
+
+**Reference:** [`AuthClient#exchange_code`](doc#Smartcar+openDialog) TODO: UPDATE THIS LINK
+
 
 * To make any vehicle data request to the Smartcar API, you'll need to give the SDK a valid **access token**. Access tokens will expire every 2 hours, so you'll need to constantly refresh them. To check if an access object is expired, use `smartcar.expired(access['expiration'])`.
 
