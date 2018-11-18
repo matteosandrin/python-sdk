@@ -49,8 +49,21 @@ You can read more on valid Redirect URIs on the [Smartcar API documentation](htt
 
 Once you have constructed your redirect URI, make sure to register it on the [Smartcar dashboard](https://dashboard.smartcar.com).
 
-* Import the sdk `import smartcar`
-* Create a new smartcar `client` with `smartcar.AuthClient(client_id, client_secret, redirect_uri, scope, test_mode)`
+### 2. Initialize Smartcar
+
+```python
+import smartcar
+
+client = smartcar.AuthClient(
+  '<your-client-id>',
+  '<your-client_secret>',
+  '<your-redirect-uri>',
+  test_mode=True           # optional
+)
+```
+
+**Reference:** [`smartcar.AuthClient`](doc#new_Smartcar_new) TODO: UPDATE THIS LINK
+
 * Redirect the user to an OEM login page using the URL from `client.get_auth_url()`
 * The user will login, and then accept or deny the permissions in your `scope`
     * If the user is already connected to your application, they will not be shown the accept or deny dialog. However the application can force this dialog to be shown with `client.get_auth_url(force=True)`
