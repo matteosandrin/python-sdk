@@ -1,36 +1,53 @@
-# Smartcar Python SDK [![Build Status][ci-image]][ci-url] [![PyPI version][pypi-image]][pypi-url]
+# Smartcar Python Backend SDK [![Build Status][ci-image]][ci-url] [![PyPI version][pypi-image]][pypi-url]
 
 ## Overview
 
 The [Smartcar API](https://smartcar.com/docs) lets you read vehicle data (location, odometer) and send commands to vehicles (lock, unlock) to connected vehicles using HTTP requests.
 
-To make requests to a vehicle from a web or mobile application, the end user must connect their vehicle using [Smartcar's authorization flow](https://smartcar.com/docs#authentication). This flow follows the OAuth spec and will return a `code` which can be used to obtain an access token from Smartcar.
+To make requests to a vehicle  web or mobile application, the end user must connect their vehicle using [Smartcar's authorization flow](https://smartcar.com/docs#authentication).
 
-The Smartcar Python SDK provides methods to:
-1. Generate the link to redirect to for Smartcar's authorization flow.
-2. Make a request to Smartcar with the `code` obtained from this authorization flow to obtain an access and refresh token
-3. Make requests to the Smartcar API to read vehicle data and send commands to vehicles using the access token obtained in step 2.
-
-Before integrating with Smartcar's SDK, you'll need to register an application in the [Smartcar Developer portal](https://developer.smartcar.com). If you do not have access to the dashboard, please [request access](https://smartcar.com/subscribe).
+Before integrating with Python SDK, you'll need to register an application in the [Smartcar Developer portal](https://developer.smartcar.com). Once you have registered an application, you will have a Client ID and Client Secret, which will allow you to authorize users.
 
 ## Installation
 ```
 pip install smartcar
 ```
 
-### Running tests
-```
-make test
-```
+## SDK reference
 
-### Running verbose tests
-```
-make test args="--verbose"
-```
+For detailed documentation on parameters and available methods, please refer to
+the [SDK reference](doc/).
 
-## Overall Usage
+## Flow
 
-Now that you have your id, secret and redirect URI, here's a simple overall idea of how to use the SDK to authenticate and make requests with the Smartcar API.
+The Python SDK assists with the OAuth authorization process and making requests to the Smartcar API.
+
+1. User clicks "Connect your car" button (or similar button) on your application's front end.
+2. User is redirected to the Smartcar authorization flow.
+   1. User selects the make of their vehicle.
+   2. User is prompted to log in with their vehicle credentials.
+   3. User is presented with a set of requested permissions to grant your application.
+   4. User can either "Allow" or "Deny" your application's access to the set of permissions.
+3. The Smartcar authorization flow redirects the user to a route on your application with the resulting authorization `code`.
+4. Your application sends the `client_id`, `client_secret`, and the retrieved authorization `code` to Smartcar in exchange for an `access_token`.
+5. Your application uses the `access_token` to make requests to a vehicle.
+
+## Quick Start
+
+### 1. Register a redirect URI
+
+To use the Smartcar authorization flow, you'll need to register an redirect URI. The user will be redirected to the specified URI upon completion of the authorization flow. For web applications, register an HTTP or HTTPS URI. Some example URIs are:
+
+#### Valid:
++ `http://localhost:8000`
++ `https://myapplication.com`
+
+#### Invalid:
++ `http://myapplication.com` (http is only supported for localhost)
+
+You can read more on valid Redirect URIs on the [Smartcar API documentation](https://smartcar.com/docs#redirect-uris).
+
+Once you have constructed your redirect URI, make sure to register it on the [Smartcar dashboard](https://dashboard.smartcar.com).
 
 * Import the sdk `import smartcar`
 * Create a new smartcar `client` with `smartcar.AuthClient(client_id, client_secret, redirect_uri, scope, test_mode)`
@@ -95,8 +112,6 @@ vehicle = smartcar.Vehicle(vehicle_id, access_token)
 odometer = vehicle.odometer()['data']['distance']
 ```
 
-* For a lot more examples on everything you can do with a car, see the [smartcar developer docs](https://smartcar.com/docs)
-
 ## Handling Exceptions
 
 * Any time you make a request to the Smartcar API, something can go wrong. This means that you *really* should wrap each call to `client.exchange_code`, `client.exchange_refresh_token`, `client.get_vehicle_ids`, and any vehicle method with some exception handling code.
@@ -115,226 +130,6 @@ odometer = vehicle.odometer()['data']['distance']
 |500|smartcar.ServerException|
 |501|smartcar.NotCapableException|
 |504|smartcar.GatewayTimeoutException|
-
-## AuthClient
-
-### `smartcar.AuthClient(self, client_id, client_secret, redirect_uri, scope=None, test_mode=False)`
-
-A client for accessing the Smartcar API
-
-#### Arguments:
-| Parameter       | Type | Description   |
-|:--------------- |:---|:------------- |
-| `client_id`     | String |**Required** Application clientId obtained from [Smartcar Developer Portal](https://developer.smartcar.com). If you do not have access to the dashboard, please [request access](https://smartcar.com/subscribe). |
-| `client_secret` | String |**Required** Application clientSecret obtained from [Smartcar Developer Portal](https://developer.smartcar.com). If you do not have access to the dashboard, please [request access](https://smartcar.com/subscribe). |
-| `redirect_uri`  | String |**Required** RedirectURI set in [application settings](https://developer.smartcar.com/apps). Given URL must match URL in application settings. |
-| `scope`         | String[] |**Optional** List of permissions your application requires. This will default to requiring all scopes. The valid permission names are found in the [API Reference](https://smartcar.com/docs#get-all-vehicles). |
-| `test_mode`   | Boolean |**Optional** Launch the Smartcar auth flow in test mode. |
-| `development`   | Boolean |**Optional** DEPRECATED Launch the Smartcar auth flow in development mode to enable mock vehicle brands. |
-
-### `get_auth_url(self, force=False, state=None)`
-
-Generate an OAuth authentication URL
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---|:------------- |
-| `force`   | Boolean |**Optional** Setting `forcePrompt` to `true` will show the permissions approval screen on every authentication attempt, even if the user has previously consented to the exact scope of permissions. |
-| `state`         | String |**Optional** OAuth state parameter passed to the redirectUri. This parameter may be used for identifying the user who initiated the request. |
-
-#### Return
-| Type             | Description         |
-|:---------------- |:--------------------|
-| String           | Smartcar OAuth authentication URL |
-
-#### Example
-```
-'https://connect.smartcar.com/oauth/authorize?response_type=token...'
-```
-
-### `exchange_code(code)`
-
-Exchange an authentication code for an access dictionary
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---|:------------- |
-| `code`         | String |Authorization code to exchange with Smartcar for an `access_token`. |
-
-#### Return
-| Type                            | Description         |
-|:------------------------------- |:--------------------|
-| Dictionary                      | Dictionary containing the access and refresh token |
-| Dictionary.`access_token`       | A string representing an access token used to make requests to the Smartcar API. |
-| Dictionary.`expiration`         | A datetime of the expiration of the access_token |
-| Dictionary.`refresh_token`      | A string representing a refresh token, which is used to renew access when the current access token expires. The refresh token expires in 60 days. |
-| Dictionary.`refresh_expiration` | A datetime of the expiration of the refresh_token |
-| Dictionary.`token_type`         | Always set to  Bearer . Token type is used in forming the Authorization header used by the Smartcar API in the following step. |
-
-### `exchange_refresh_token(token)`
-
-Exchange a refresh token for a new access dictionary
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---|:------------- |
-| `token`         | String |Refresh token to exchange with Smartcar for an `access_token`. |
-
-#### Return
-| Type                            | Description         |
-|:------------------------------- |:--------------------|
-| Dictionary                      | Dictionary containing the access and refresh token |
-| Dictionary.`access_token`       | A string representing an access token used to make requests to the Smartcar API. |
-| Dictionary.`expiration`         | A datetime of the expiration of the access_token |
-| Dictionary.`refresh_token`      | A string representing a refresh token, which is used to renew access when the current access token expires. The refresh token expires in 60 days. |
-| Dictionary.`refresh_expiration` | A datetime of the expiration of the refresh_token |
-| Dictionary.`token_type`         | Always set to  Bearer . Token type is used in forming the Authorization header used by the Smartcar API in the following step. |
-
-## Vehicle
-
-After receiving an `access_token` from the Smartcar Auth flow, your application may make
-requests to the vehicle using the `access_token` and the `Vehicle` class.
-
-### `smartcar.Vehicle(self, vehicle_id, access_token, unit_system='metric')`
-
-Initializes a new Vehicle to use for making requests to the Smartcar API.
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---- |:------------- |
-| `vehicle_id`    | String | **Required** the vehicle's unique identifier |
-| `access_token`  | String | **Required** a valid access token |
-| `unit_system`   | String | **Optional** the unit system to use for vehicle data. Defaults to metric. |
-
-### `set_unit_system(self, unit_system)`
-
-Update the unit system to use in requests to the Smartcar API.
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---- |:------------- |
-| `unit_system`          | String | the unit system to use (metric/imperial) |
-
-### `permissions(self)`
-
-Returns a paged list of all permissions currently associated with this vehicle.
-
-#### Return
-| Type               | Description         |
-|:------------------ |:--------------------|
-| List[String]       | 	An array of permissions. |
-
-### `info(self)`
-
-Returns a single vehicle object, containing identifying information.
-
-#### Return
-| Type               | Description         |
-|:------------------ |:--------------------|
-| Dictionary         | vehicle's info |
-| Dictionary.`id`    | A vehicle ID (UUID v4). |
-| Dictionary.`make`  | The manufacturer of the vehicle. |
-| Dictionary.`model` | The model of the vehicle. |
-| Dictionary.`year`  | The model year. |
-
-### `vin(self)`
-
-Returns the vehicle's manufacturer identifier.
-
-#### Return
-| Type               | Description         |
-|:------------------ |:--------------------|
-| String             | The manufacturer unique identifier. |
-
-### `location(self)`
-
-Returns the location of the vehicle in geographic coordinates.
-
-#### Return
-| Type               | Description         |
-|:------------------ |:--------------------|
-| Dictionary         | vehicle's location  |
-| Dictionary.`data`.`latitude`  | The latitude (in degrees). |
-| Dictionary.`data`.`longitude` | The longitude (in degrees). |
-| Dictionary.`age`   | A datetime for the age of the data |
-
-### `odometer(self)`
-
-Returns the vehicle's current odometer reading.
-
-#### Return
-| Type               | Description         |
-|:------------------ |:--------------------|
-| Dictionary         | vehicle's odometer  |
-| Dictionary.`data`.`odometer`  | The current odometer of the vehicle |
-| Dictionary.`unit_system` | the unit system of the odometer data |
-| Dictionary.`age`   | A datetime for the age of the data |
-
-### `disconnect(self)`
-
-Disconnect this vehicle from the connected application.
-
-Note: Calling this method will invalidate your access token and you will
-have to have the user reauthorize the vehicle to your application if you
-wish to make requests to it
-
-### `unlock(self)`
-
-Unlock the vehicle.
-
-### `lock(self)`
-
-Lock the vehicle.
-
-## Static Methods
-
-### `smartcar.is_expired(expiration)`
-
-Check if an expiration is expired
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---- |:------------- |
-| `expiration`    | DateTime | **Required** expiration datetime |
-
-#### Returns
-
-| Type               | Description         |
-|:------------------ |:--------------------|
-| Boolean            | true if expired     |
-
-### `smartcar.get_vehicle_ids(access_token, limit=10, offset=0)`
-
-Get a list of the user's vehicle ids
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---- |:------------- |
-| `access_token`    | String | **Required** A valid access token from a previously retrieved access object |
-| `limit`    | Integer | **Optional** The number of vehicle ids to return |
-| `offset`    | Integer | **Optional** The index to start the vehicle list at |
-
-#### Returns
-| Type               | Description         |
-|:------------------ |:--------------------|
-| Dictionary            | response containing the list of vehicle ids and paging information  |
-| Dictionary.`vehicles` | An array of vehicle IDs. |
-| Dictionary.`paging`.`count` | The total number of elements for the entire query (not just the given page). |
-| Dictionary.`paging`.`offset` | The current start index of the returned list of elements. |
-
-### `smartcar.get_user_id(access_token)`
-
- Retrieve the userId associated with the access_token
-
-#### Arguments
-| Parameter       | Type | Description   |
-|:--------------- |:---- |:------------- |
-| `access_token`    | String | **Required** A valid access token from a previously retrieved access object |
-
-#### Returns
-| Type               | Description         |
-|:------------------ |:--------------------|
-| String             | the user id |
 
 [ci-url]: https://travis-ci.com/smartcar/python-sdk
 [ci-image]: https://travis-ci.com/smartcar/python-sdk.svg?token=FcsopC3DdDmqUpnZsrwg&branch=master
